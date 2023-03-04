@@ -2,6 +2,7 @@ import express from 'express';
 import * as dotenv from 'dotenv';
 import cors from 'cors';
 import { Configuration, OpenAIApi } from 'openai';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -15,6 +16,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+let firstPrompt = '';
+const promptHistory = [];
+
+fs.readFile('first_prompt.txt', 'utf8', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    firstPrompt = data.trim();
+    console.log(`Loaded first prompt: ${firstPrompt}`);
+});
+
 app.get('/', async (req, res) => {
     res.status(200).send({
         message: 'This is OpenAI CodeX'
@@ -25,18 +38,40 @@ app.post('/', async (req, res) => {
     try {
         const prompt = req.body.prompt;
 
+        promptHistory.push(prompt);
+        if (promptHistory.length > 4) {
+            promptHistory.shift();
+        }
+
+        let promptWithHistory = '';
+        if (firstPrompt) {
+            promptWithHistory = `${firstPrompt}\n${promptHistory.join('\n')}`;
+        } else {
+            promptWithHistory = prompt;
+            firstPrompt = prompt;
+            fs.writeFile('first_prompt.txt', prompt, err => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                console.log(`Saved first prompt: ${prompt}`);
+            });
+        }
+
         const response = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
-            messages: [{"role": "user", "content": `${prompt}`}],
+            messages: [{
+                role: "user",
+                content: `${promptWithHistory}`}],
             temperature: 0.5,
-            max_tokens: 200, // The maximum number of tokens to generate in the completion. Most models have a context length of 2048 tokens (except for the newest models, which support 4096).
-            top_p: 1, // alternative to sampling with temperature, called nucleus sampling
-            frequency_penalty: 0.5, // Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
-            presence_penalty: 0.5, // Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
+            max_tokens: 1000,
+            top_p: 1,
+            frequency_penalty: 0.5,
+            presence_penalty: 0.5,
         })
 
         res.status(200).send({
-            bot: response.data.choices[0].message })
+            bot: response.data.choices[0].message.content })
     }   catch (error) {
         console.log(error);
         res.status(500).send({ error })
