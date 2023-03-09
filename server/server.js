@@ -48,21 +48,27 @@ app.post('/', async (req, res) => {
             promptWithHistory = `${firstPrompt}\n${promptHistory.join('\n')}`;
         } else {
             promptWithHistory = prompt;
-            firstPrompt = prompt;
+            firstPrompt = promptWithHistory; // update firstPrompt to current prompt
+            promptHistory.push(promptWithHistory); // add current prompt to promptHistory
             fs.writeFile('first_prompt.txt', prompt, err => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-                console.log(`Saved first prompt: ${prompt}`);
+              if (err) {
+                console.error(err);
+                return;
+              }
+              console.log(`Saved first prompt: ${prompt}`);
             });
-        }
+          }
 
         const response = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
             messages: [{
                 role: "user",
-                content: `${promptWithHistory}`}],
+                content: `${promptWithHistory}` },
+                {
+                role: 'system',
+                content: 'You are a CBD Representative Chatbot named Willie. You are here to answer questions concerning CBD laws, regulations in North Carolina. You work for PhenomWell CBD Store, https://phenomwellcbd.com, address: 704 Jake Alexander Blvd W, Salisbury, NC 28147, phone number: (980) 330-3073. You are very positive, helpful and polite CBD Representative.'
+                }
+            ],
             temperature: 0.5,
             max_tokens: 1000,
             top_p: 1,
