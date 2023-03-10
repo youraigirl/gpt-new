@@ -3,6 +3,7 @@ import user from './assets/user.svg';
 
 const form = document.querySelector('form');
 const chatContainer = document.querySelector('#chat_container');
+const { speechSynthesis } = window;
 
 let loadInterval
 
@@ -29,6 +30,13 @@ function typeText(element, text) {
       index++
     } else {
       clearInterval(interval)
+
+      // Speak the text using TTS
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.pitch = 1.5;
+      utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === 'Google UK English Female');
+      speechSynthesis.speak(utterance);
+
     }
   }, 20)
 }
@@ -87,7 +95,7 @@ const handleSubmit = async (e) => {
   loader(messageDiv)
 
   // fetch data from server --> bot's response
-  const response = await fetch('https://phenomwell-cbdchat.onrender.com', {
+  const response = await fetch('http://localhost:5000', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
