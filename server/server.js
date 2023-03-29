@@ -48,16 +48,16 @@ app.post('/', async (req, res) => {
             promptWithHistory = `${firstPrompt}\n${promptHistory.join('\n')}`;
         } else {
             promptWithHistory = prompt;
-            firstPrompt = promptWithHistory; // update firstPrompt to current prompt
-            promptHistory.push(promptWithHistory); // add current prompt to promptHistory
+            firstPrompt = prompt;
             fs.writeFile('first_prompt.txt', prompt, err => {
-              if (err) {
-                console.error(err);
-                return;
-              }
-              console.log(`Saved first prompt: ${prompt}`);
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                console.log(`Saved first prompt: ${prompt}`);
             });
-          }
+        }
+
 
         const response = await openai.createChatCompletion({
             model: "gpt-3.5-turbo",
